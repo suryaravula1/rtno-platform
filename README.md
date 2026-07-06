@@ -90,8 +90,31 @@ curl http://localhost:3000/api/health
 
 Then open http://localhost:3000 in a browser.
 
+## ClickHouse schema
+
+On first boot, ClickHouse applies init SQL from [`clickhouse/initdb.d/`](clickhouse/initdb.d/) and creates:
+
+- Database: `rtno`
+- Table: `rtno.packet_window_events`
+
+Column names match [`rtno-contracts` v1 packet window event schema](https://github.com/suryaravula1/rtno-contracts/blob/main/schemas/v1/packet-window-event.schema.json).
+
+Migration notes live in [`clickhouse/migrations/README.md`](clickhouse/migrations/README.md).
+
+Verify the table exists:
+
+```bash
+docker compose exec clickhouse clickhouse-client --query "DESCRIBE TABLE rtno.packet_window_events"
+```
+
+To recreate schema from scratch:
+
+```bash
+docker compose down -v
+docker compose up -d
+```
+
 ## What comes next
 
-- RTNO-005: ClickHouse schema migrations aligned with `rtno-contracts`
 - RTNO-006: Grafana ClickHouse datasource provisioning
 - RTNO-007: Makefile or task runner for common dev commands
