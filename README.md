@@ -11,11 +11,18 @@ Repository boundaries and build order are documented in [`docs/repository-archit
 ## Prerequisites
 
 - Docker Desktop or Docker Engine with Compose v2
+- `make` (optional, recommended)
 - Ports `8123`, `9000`, and `3000` available locally
 
 ## Boot the local stack
 
 From this repository:
+
+```bash
+make up
+```
+
+Or without Make:
 
 ```bash
 docker compose up -d
@@ -24,13 +31,25 @@ docker compose up -d
 Check service health:
 
 ```bash
-docker compose ps
+make ps
 ```
 
 Expected healthy services:
 
 - `rtno-clickhouse`
 - `rtno-grafana`
+
+## Makefile commands
+
+| Command | Purpose |
+|---|---|
+| `make up` | Start ClickHouse and Grafana |
+| `make down` | Stop containers and keep data |
+| `make logs` | Follow container logs |
+| `make reset` | Stop containers and delete volumes |
+| `make ps` | Show container status |
+| `make ping` | Check ClickHouse and Grafana HTTP health |
+| `make verify` | Describe `rtno.packet_window_events` table |
 
 ## Service endpoints
 
@@ -49,36 +68,33 @@ Grafana local login:
 
 ClickHouse uses the default user with no password for local development only.
 
-## Useful commands
+## Grafana ClickHouse datasource
 
-Start stack:
+Grafana auto-provisions a ClickHouse datasource from [`grafana/provisioning/datasources/clickhouse.yml`](grafana/provisioning/datasources/clickhouse.yml).
 
-```bash
-docker compose up -d
-```
+- Name: `RTNO ClickHouse`
+- Database: `rtno`
+- Server: `clickhouse:8123` inside the Docker network
 
-Follow logs:
+After `make up`, open Grafana → **Connections → Data sources** and confirm **RTNO ClickHouse** is present.
 
-```bash
-docker compose logs -f
-```
-
-Stop stack:
+If Grafana was already running before this provisioning was added, recreate it:
 
 ```bash
-docker compose down
-```
-
-Stop stack and remove volumes:
-
-```bash
-docker compose down -v
+docker compose up -d --force-recreate grafana
 ```
 
 ## Verify ClickHouse
 
 ```bash
-curl http://localhost:8123/ping
+make ping
+make verify
+```
+
+Or manually:
+
+```bash
+curl http://127.0.0.1:8123/ping
 docker compose exec clickhouse clickhouse-client --query "SELECT 1"
 ```
 
@@ -101,20 +117,15 @@ Column names match [`rtno-contracts` v1 packet window event schema](https://gith
 
 Migration notes live in [`clickhouse/migrations/README.md`](clickhouse/migrations/README.md).
 
-Verify the table exists:
-
-```bash
-docker compose exec clickhouse clickhouse-client --query "DESCRIBE TABLE rtno.packet_window_events"
-```
-
 To recreate schema from scratch:
 
 ```bash
-docker compose down -v
-docker compose up -d
+make reset
+make up
 ```
 
 ## What comes next
 
-- RTNO-006: Grafana ClickHouse datasource provisioning
-- RTNO-007: Makefile or task runner for common dev commands
+- RTNO-008: Scaffold Go simulator project
+- RTNO-012: Scaffold Go collector project
+- RTNO-020: Grafana dashboards in `rtno-dashboards`
